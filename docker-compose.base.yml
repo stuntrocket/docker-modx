@@ -1,0 +1,70 @@
+version: "3.9"
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    networks:
+      - docker-network-modx
+    ports:
+      - "80:80"  # HTTP
+      - "8443:443"  # HTTPS
+    depends_on:
+      - php-fpm
+    volumes:
+      - ./docker/nginx/conf.d/default.conf:/etc/nginx/conf.d/default.conf
+      - .:/var/www/html
+    restart: on-failure
+
+  php-fpm:
+    build:
+      context: ./docker/php-fpm
+    container_name: php-fpm
+    networks:
+      - docker-network-modx
+    volumes:
+      - .:/var/www/html
+    restart: on-failure
+    depends_on:
+      - mysql
+    links:
+      - mysql
+    environment:
+      MODX_VERSION: 3.0.3
+      MODX_DB_HOST: mysql:3306
+      MODX_DB_PASSWORD: modx
+      MODX_DB_USER: modx
+      MODX_DB_NAME: modx
+      MODX_TABLE_PREFIX: modx_
+      MODX_ADMIN_USER: admin
+      MODX_ADMIN_PASSWORD: admin
+      MODX_ADMIN_EMAIL: admin@admin.co
+
+  mysql:
+    image: mysql:5.7.28
+    container_name: mysql
+    networks:
+      - docker-network-modx
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./docker/mysql/sql:/sql
+#    env_file:
+#      - docker/.env
+    environment:
+      MYSQL_ROOT_PASSWORD: mysql
+      MYSQL_DATABASE: modx
+      MYSQL_USER: modx
+      MYSQL_PASSWORD: modx
+    # command: mysqld --sql-mode=NO_ENGINE_SUBSTITUTION
+    restart: on-failure
+
+networks:
+  docker-network-modx:
+    driver: "bridge"
+volumes:
+  db_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./docker/db_data

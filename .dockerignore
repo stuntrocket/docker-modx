@@ -1,0 +1,13 @@
+.dockerignore
+.docker/
+.git/
+docker/
+*.gitignore
+*.gitattributes
+*.md
+.idea/
+.nova/
+README-DOCKER.md
+docker-compose.*
+/develop
+*.DS_Store

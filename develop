@@ -1,0 +1,108 @@
+#!/usr/bin/env bash
+
+## Prints help text to stdout.
+display_help() {
+    cat << EOF
+Usage: ./develop [OPTION]
+Available options:
+  artisan   - Run Laravel Artisan commands.
+  composer  - Run Composer commands.
+  init      - Initialize the Laravel application.
+  test      - Run PHPUnit tests.
+  npm       - Run NPM commands.
+  npx       - Run NPX commands.
+  node      - Run Node commands.
+  initdb    - Create app and test database.
+  sql       - Run SQL from designated folder.
+  help      - Display this help message.
+EOF
+}
+
+## Checks if Docker is running.
+docker_check() {
+    docker info > /dev/null 2>&1
+
+    if [ $? -ne 0 ]; then
+        echo "Docker is not running."
+        exit 1
+    fi
+}
+
+## Sets environment variables.
+set_environment_vars() {
+    export APP_PORT=${APP_PORT:-80}
+    export DB_PORT=${DB_PORT:-3306}
+    export DB_ROOT_PASS=${DB_ROOT_PASS:-password}
+    export DB_NAME=${DB_NAME:-app}
+    export DB_USER=${DB_USER:-root}
+    export DB_PASS=${DB_PASS:-password}
+    export DB_IMAGE=${DB_IMAGE:-mysql:5.7.28}
+    export TESTVAR=${TESTVAR:456}
+}
+
+## Determines which compose file to use.
+determine_compose_file() {
+    COMPOSE_FILE="dev"
+
+    TTY=""
+    if [ ! -z "$BUILD_NUMBER" ]; then
+        COMPOSE_FILE="ci"
+        TTY="-T"
+    fi
+
+    COMPOSE="docker-compose -f docker-compose.base.yml -f docker-compose.$COMPOSE_FILE.yml"
+}
+
+## Runs a command within a Docker container.
+run_command() {
+    shift 1
+    $COMPOSE exec modx sh -c "cd /var/www/html && $*"
+}
+
+## Runs SQL command within a Docker container.
+sql_command() {
+    shift 1
+    SQL_SCRIPT="$@"
+    if [ -f "./docker/mysql/sql/$SQL_SCRIPT" ]; then
+        $COMPOSE exec mysql bash -c "mysql -u root -p$DB_ROOT_PASS < /sql/$SQL_SCRIPT"
+    else
+        echo "SQL script $SQL_SCRIPT not found."
+    fi
+}
+
+# Execute functions
+display_help
+docker_check
+set_environment_vars
+determine_compose_file
+
+# Command switch
+case "$1" in
+    help)
+        display_help
+        exit 0
+        ;;
+    artisan|composer|npm|npx|node)
+        run_command "$@"
+        ;;
+    init)
+        # ./develop composer install
+        ;;
+    initdb)
+        echo 'Initializing MySQL database...'
+        $COMPOSE exec mysql bash -c "mysql -u root -p$DB_ROOT_PASS < /docker-entrypoint-initdb.d/init.sql"
+        ;;
+    sql)
+        sql_command "$@"
+        ;;
+    test)
+        run_command "./vendor/bin/phpunit $@"
+        ;;
+    *)
+        if [ -z "$1" ]; then
+            $COMPOSE ps
+        else
+            $COMPOSE "$@"
+        fi
+        ;;
+esac

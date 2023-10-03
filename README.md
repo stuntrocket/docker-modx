@@ -1,163 +1,97 @@
-# Docker PHP NGINX
+# Docker (Quickstart)
 
-## Local Workstation
+[More notes here](https://app.heptabase.com/w/d9f492c25e2e7daf92d5c5ce582c8e288b90724ff9c48e805f2a1dc054fbca2e)
 
-`~/Code/Project/provision/docker`
-
-## Repositories
-
-[stuntrocket/docker-php-nginx](https://github.com/stuntrocket/docker-php-nginx)
-
-[stuntrocket/docker-php-apache](https://github.com/stuntrocket/docker-php-apache)
-
-## 🦄 Helper
-
-We can use the helper to abstract some harder to remember commands.
-
-```shell
-chmod 777 ./develop
+## Build Containers
+This will build the basic Docker service containers and mount the three LitEnc folders.
+```php
+./develop up -d --build && ./develop init
 ```
 
-### ⬆️ Up
+Check our containers were started.
+```php
+./develop
 
-Synonymous with `docker-compose up -d`
-
-```shell
-./develop up -d
+# is synonymous with
+docker-compose -f docker-compose.dev.yml ps
 ```
 
-### ⬇️ Down
+**Containers**
+- litenc
+- mysql
+- solr
 
-```shell
-./develop down
+## Initialise App
+The containers should be running but we still need to **initialise** some things.
+Using the single **init** command we can run our basic setup.
+I have included each step below in case you want to run them individually, otherwise, this one should work OK.
+```php
+./develop init
 ```
 
-### Checking the container processes.
+The container should now be visible at:
+[http://127.0.0.1:1025/][1]
 
-```other
-develop ps
+This will run the following **setup**.
+1. Composer
+2. NPM
+3. Vendor files
+4. Build Assets
+5. Laravel Initialisation
+
+### 1\. Composer
+Install the Laravel dependencies.
+```php
+./develop composer install
 ```
 
-### 🧹 Other Commands
-
-The helper is just a proxy for ::docker-compose:: and simply attempts to run commands against the relevant containers.
-
-```shell
-if [ "$1" == "artisan" ]; then
-    shift 1
-    $COMPOSE run --rm $TTY \
-        -w /var/www/html \
-        app.test \
-        php artisan "$@"
-
-elif [ "$1" == "composer" ]; then
-    shift 1
-    $COMPOSE run --rm $TTY \
-        -w /var/www/html \
-        app.test \
-        composer "$@"
-
-elif [ "$1" == "init" ]; then
-    shift 1
-    $COMPOSE run --rm $TTY \
-        -w /var/www/html \
-        app.test \
-        bash ./docker/app/init.sh
-
-elif [ "$1" == "mage" ]; then
-    shift 1
-    $COMPOSE run --rm $TTY \
-        -w /var/www/html \
-        app.test \
-        php bin/magento "$@"
-
-elif [ "$1" == "test" ]; then
-    shift 1
-    $COMPOSE run --rm $TTY \
-        -w /var/www/html \
-        app.test \
-        ./vendor/bin/phpunit "$@"
-
-elif [ "$1" == "t" ]; then
-    shift 1
-    $COMPOSE exec \
-        app.test \
-        sh -c "cd /var/www/html && ./vendor/bin/phpunit $@"
-
-elif [ "$1" == "npm" ]; then
-    shift 1
-    $COMPOSE run --rm $TTY \
-        -w /var/www/html \
-        node \
-        npm "$@"
-
-elif [ "$1" == "yarn" ]; then
-    shift 1
-    $COMPOSE run --rm $TTY \
-        -w /var/www/html \
-        node \
-        yarn "$@"
-
-elif [ "$1" == "gulp" ]; then
-    shift 1
-    $COMPOSE run --rm $TTY \
-        -w /var/www/html \
-        node \
-        ./node_modules/.bin/gulp "$@"
-else
-    $COMPOSE "$@"
-fi
+### 2\. NPM
+Install the NPM packages
+```php
+./develop npm install
 ```
 
-For example to migrate a Laravel database we can do:
-
-```other
-./develop artisan migrate
+### 3\. Vendor files
+```php
+./develop editor
 ```
 
-> Check the ::develop:: file to see what is available.
-
-### ⚙️ Config
-
-The helper also defines a simple set of configuration variables for setting up the database user, password etc. These are OK on local workstations but not in production.
-
-```other
-# Set environment variables for dev or CI
-
-export APP_PORT=${APP_PORT:-80}
-
-export DB_PORT=${DB_PORT:-3306}
-export DB_ROOT_PASS=${DB_ROOT_PASS:-secret}
-export DB_NAME=${DB_NAME:-homestead}
-export DB_USER=${DB_USER:-homestead}
-export DB_PASS=${DB_PASS:-secret}
-
-# e.g mysql:8.0
-# e.g mysql:5.7
-export DB_IMAGE=${DB_IMAGE:-bitnami/mariadb}
+### 4\. Build Assets
+```php
+./develop npx mix
 ```
 
-These can be overridden at runtime if needed.
+### 5\. Laravel Initialisation
+```php
+./develop artisan migrate --force
+./develop artisan storage:link
 
-```shell
-DB_PASS=reallysecret ./develop up -d --build
+# optional
+./develop artisan config:cache
 ```
 
-## 🗄 Database
+## Without the Wrapper
+Most of the commands can be executed without the **wrapper** if you prefer, by using the **docker-compose syntax** below.
+```php
 
-There is a basic database starting point that can be extended to seed your database in ::docker/mysql/init.sql.::
-
-### Connecting From Host
-
-Because we use the ::expose::
-
-attribute in our docker-compose.yml we can connect to the G::uest:: database from the H::ost:: workstation using SequelPro, Querious GUI, or use the develop tool to interact with Mysql CLI.
-
-### Mysql Container
-
-```shell
-./develop ps
-
-docker exec docker-php_mysql_1 mysql -uhomestead -psecret -e "create database new_database"
+docker-compose -f docker-compose.dev.yml exec litenc sh -c "cd /var/www/html/le_enhanced && php artisan"
 ```
- 
+
+### Troubleshooting
+If you need to login and look around or issue commands manually:
+```php
+docker exec -it litenc sh
+```
+
+#### Log Files
+```php
+/var/www/html/access.log
+/var/www/html/error.log
+```
+
+#### See Also
+LitEnc - Docker
+Key Terms:
+Related Topics:
+
+[1]:	http://127.0.0.1:1025

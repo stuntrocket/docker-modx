@@ -1,0 +1,27 @@
+# MODX specific
+#/core/cache/*
+#/core/export/*
+#/core/packages/*
+#/core/components/*
+#/config.core.php
+#/config.core. *.php
+#/manager/config.core.php
+
+# We only care about the docker stuff for this repository.
+# Everything else is ignored.
+/private
+/core
+/assets
+/manager
+/connectors
+/setup
+/index.php
+/.idea
+.idea
+
+# Common ignore rules
+*.log
+*.bak
+*.swp
+.DS_Store
+Thumbs.db
